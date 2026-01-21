@@ -1,25 +1,25 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-
-using Microsoft.Win32;
-using System.IO;
-using System.Text.Json;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
 using Telhai.DotNet.PlayerProject.Models;
+using Telhai.DotNet.PlayerProject.Services;
 
 namespace Telhai.DotNet.PlayerProject
 {
@@ -28,6 +28,10 @@ namespace Telhai.DotNet.PlayerProject
     /// </summary>
     public partial class MusicPlayer : Window
     {
+        // for ItunesService
+        private readonly ItunesService _itunesService = new ItunesService();
+        private CancellationTokenSource? _cts;
+
         // Global Variables
         private MediaPlayer mediaPlayer = new MediaPlayer();
         private DispatcherTimer timer = new DispatcherTimer();
@@ -80,9 +84,10 @@ namespace Telhai.DotNet.PlayerProject
         // --- EMPTY PLACEHOLDERS TO MAKE IT BUILD ---
         private void BtnPlay_Click(object sender, RoutedEventArgs e)
         {
-            if(sender is Button btn)
+            if (lstLibrary.SelectedItem is MusicTrack track)
             {
-                btn.Background = Brushes.LightGreen;
+                PlayTrack(track);
+                return;
             }
 
             mediaPlayer.Play();
@@ -190,14 +195,16 @@ namespace Telhai.DotNet.PlayerProject
 
         private void LstLibrary_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
+            //if (lstLibrary.SelectedItem is MusicTrack track)
+            //{
+            //    mediaPlayer.Open(new Uri(track.FilePath));
+            //    mediaPlayer.Play();
+            //    timer.Start();
+            //    txtCurrentSong.Text = track.Title;
+            //    txtStatus.Text = "Playing";
+            //}
             if (lstLibrary.SelectedItem is MusicTrack track)
-            {
-                mediaPlayer.Open(new Uri(track.FilePath));
-                mediaPlayer.Play();
-                timer.Start();
-                txtCurrentSong.Text = track.Title;
-                txtStatus.Text = "Playing";
-            }
+                PlayTrack(track);
         }
 
         private void ButtonSettings_Click(object sender, RoutedEventArgs e)
@@ -223,6 +230,108 @@ namespace Telhai.DotNet.PlayerProject
 
             UpdateLibraryUI();
             SaveLibrary();
+        }
+
+        private void lstLibrary_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lstLibrary.SelectedItem is MusicTrack track)
+            {
+                txtCurrentSong.Text = track.Title;
+                FilePathText.Text = track.FilePath;
+            }
+        }
+
+        private void PlayTrack(MusicTrack track)
+        {
+            if (!File.Exists(track.FilePath))
+                return;
+
+            // 1) מנגן מיד
+            mediaPlayer.Open(new Uri(track.FilePath));
+            mediaPlayer.Play();
+            timer.Start();
+
+            txtCurrentSong.Text = track.Title;
+            txtStatus.Text = "Playing";
+            FilePathText.Text = track.FilePath;
+
+            // 2) ביטול קריאה קודמת
+            _cts?.Cancel();
+            _cts = new CancellationTokenSource();
+
+            // 3) ניקוי UI + תמונת ברירת מחדל
+            ClearSongInfo(keepFilePath: true);
+            txtStatus.Text = "Searching song info...";
+
+            // 4) קריאה אסינכרונית במקביל לניגון (לא await כאן!)
+            string query = BuildSearchQuery(track.Title);
+            _ = LoadSongInfoAsync(query, _cts.Token, track);
+        }
+
+        private static string BuildSearchQuery(string fileNameNoExt)
+        {
+            var q = fileNameNoExt.Replace("-", " ").Replace("_", " ");
+            q = string.Join(" ", q.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            return q;
+        }
+
+        private void ClearSongInfo(bool keepFilePath)
+        {
+            TrackNameText.Text = "-";
+            ArtistNameText.Text = "-";
+            AlbumNameText.Text = "-";
+
+            AlbumImage.Source = new BitmapImage(
+        new Uri("pack://application:,,,/Telhai.DotNet.PlayerProject;component/Assets/default_cover.png"));
+
+            if (!keepFilePath)
+                FilePathText.Text = "-";
+        }
+
+        private async Task LoadSongInfoAsync(string query, CancellationToken token, MusicTrack track)
+        {
+            try
+            {
+                // לפי הדוגמה שלך: SearchOneAsync מחזיר ItunesTrackInfo
+                ItunesTrackInfo? info = await _itunesService.SearchOneAsync(query, token);
+
+                if (info == null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        // דרישה: אם אין מידע/שגיאה לוגית - מציג שם קובץ ללא סיומת + מסלול
+                        TrackNameText.Text = track.Title;
+                        FilePathText.Text = track.FilePath;
+                        txtStatus.Text = "No information found.";
+                    });
+                    return;
+                }
+
+                Dispatcher.Invoke(() =>
+                {
+                    TrackNameText.Text = info.TrackName;
+                    ArtistNameText.Text = info.ArtistName;
+                    AlbumNameText.Text = info.AlbumName;
+                    txtStatus.Text = "Info loaded.";
+
+                    if (!string.IsNullOrWhiteSpace(info.ArtworkUrl))
+                        AlbumImage.Source = new BitmapImage(new Uri(info.ArtworkUrl));
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                // שיר הוחלף - תקין
+            }
+            catch
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    // דרישה: בשגיאה להציג שם ללא סיומת + מסלול
+                    TrackNameText.Text = track.Title;
+                    FilePathText.Text = track.FilePath;
+                    txtStatus.Text = "Error loading song info.";
+                });
+            }
         }
 
     }

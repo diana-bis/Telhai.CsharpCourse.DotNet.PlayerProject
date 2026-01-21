@@ -7,32 +7,90 @@
         mc:Ignorable="d"
         Title="Classroom Music Player" Height="450" Width="800"
         Background="#222" Foreground="White" WindowStartupLocation="CenterScreen">
+
     <Grid Margin="15">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
-            <TextBlock x:Name="txtStatus" Text="Ready" Foreground="#AAA" HorizontalAlignment="Center"/>
-            <TextBlock x:Name="txtCurrentSong" Text="No Song Selected" FontSize="20" FontWeight="Bold" Margin="0,10,0,20" HorizontalAlignment="Center"/>
+        <!-- LEFT SIDE: Player + Song Info -->
+        <Grid Grid.Column="0" Margin="0,0,20,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <Slider x:Name="sliderProgress" IsMoveToPointEnabled="True" Margin="0,0,0,20"
+            <TextBlock Grid.Row="0"
+                       x:Name="txtStatus"
+                       Text="Ready"
+                       Foreground="#AAA"
+                       HorizontalAlignment="Center"/>
+
+            <TextBlock Grid.Row="1"
+                       x:Name="txtCurrentSong"
+                       Text="No Song Selected"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Margin="0,10,0,20"
+                       HorizontalAlignment="Center"/>
+
+            <Slider Grid.Row="2"
+                    x:Name="sliderProgress"
+                    IsMoveToPointEnabled="True"
+                    Margin="0,0,0,20"
                     PreviewMouseLeftButtonDown="Slider_DragStarted"
                     PreviewMouseLeftButtonUp="Slider_DragCompleted"/>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Content="STOP" Click="BtnStop_Click" Width="80" Height="40" Margin="5"/>
-                <Button Content="PLAY" Click="BtnPlay_Click" Width="100" Height="40" Margin="5" FontWeight="Bold" Background="#007ACC" Foreground="White"/>
+                <Button Content="PLAY" Click="BtnPlay_Click" Width="100" Height="40" Margin="5"
+                        FontWeight="Bold" Background="#007ACC" Foreground="White"/>
                 <Button Content="PAUSE" Click="BtnPause_Click" Width="80" Height="40" Margin="5"/>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
                 <TextBlock Text="Volume " VerticalAlignment="Center"/>
-                <Slider x:Name="sliderVolume" Minimum="0" Maximum="1" Value="0.5" Width="150" ValueChanged="SliderVolume_ValueChanged"/>
+                <Slider x:Name="sliderVolume"
+                        Minimum="0" Maximum="1"
+                        Value="0.5"
+                        Width="150"
+                        ValueChanged="SliderVolume_ValueChanged"/>
             </StackPanel>
-        </StackPanel>
 
+            <!-- Song Info Panel -->
+            <Border Grid.Row="5" Margin="0,20,0,0" Padding="10" Background="#333" CornerRadius="8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Song Info" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+
+                        <TextBlock Text="Track:" Foreground="#AAA"/>
+                        <TextBlock x:Name="TrackNameText" Text="-" FontSize="14" Margin="0,0,0,6"/>
+
+                        <TextBlock Text="Artist:" Foreground="#AAA"/>
+                        <TextBlock x:Name="ArtistNameText" Text="-" FontSize="14" Margin="0,0,0,6"/>
+
+                        <TextBlock Text="Album:" Foreground="#AAA"/>
+                        <TextBlock x:Name="AlbumNameText" Text="-" FontSize="14" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="File Path:" Foreground="#AAA"/>
+                        <TextBlock x:Name="FilePathText"
+                                   Text="-"
+                                   TextWrapping="Wrap"
+                                   FontSize="12"/>
+
+                        <Image x:Name="AlbumImage" Height="140" Stretch="Uniform" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- RIGHT SIDE: Library -->
         <Grid Grid.Column="1" Margin="10,0,0,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -42,12 +100,18 @@
 
             <TextBlock Text="Library" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
-            <ListBox x:Name="lstLibrary" Grid.Row="1" Background="#333" Foreground="White" MouseDoubleClick="LstLibrary_MouseDoubleClick"/>
+            <ListBox x:Name="lstLibrary"
+                     Grid.Row="1"
+                     Background="#333"
+                     Foreground="White"
+                     SelectionChanged="lstLibrary_SelectionChanged"
+                     MouseDoubleClick="LstLibrary_MouseDoubleClick"/>
 
             <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
                 <Button Content="Add MP3" Click="BtnAdd_Click" Margin="5"/>
                 <Button Content="Remove" Click="BtnRemove_Click" Margin="5"/>
-                <Button Name="ButtonSettings" Content="Settings" Click="ButtonSettings_Click" Margin="2" Background="#555" Foreground="White"/>
+                <Button Name="ButtonSettings" Content="Settings" Click="ButtonSettings_Click" Margin="2"
+                        Background="#555" Foreground="White"/>
             </StackPanel>
         </Grid>
     </Grid>
