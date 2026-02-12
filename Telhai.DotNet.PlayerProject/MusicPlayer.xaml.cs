@@ -3,20 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 using Telhai.DotNet.PlayerProject.Models;
 using Telhai.DotNet.PlayerProject.Services;
@@ -28,6 +23,9 @@ namespace Telhai.DotNet.PlayerProject
     /// </summary>
     public partial class MusicPlayer : Window
     {
+        private readonly SongMetadataRepository _metadataRepo = new SongMetadataRepository();
+        private Dictionary<string, SongMetadata> _metadataCache = new();
+
         // for ItunesService
         private readonly ItunesService _itunesService = new ItunesService();
         private CancellationTokenSource? _cts;
@@ -59,6 +57,7 @@ namespace Telhai.DotNet.PlayerProject
 
         private void MusicPlayer_Loaded(object sender, RoutedEventArgs e)
         {
+            _metadataCache = _metadataRepo.Load();
             this.LoadLibrary();
         }
 
@@ -190,6 +189,12 @@ namespace Telhai.DotNet.PlayerProject
                 library.Remove(track);
                 UpdateLibraryUI();
                 SaveLibrary();
+
+                // remove from metadata cache
+                if (_metadataCache.Remove(track.FilePath))
+                {
+                    _metadataRepo.Save(_metadataCache);
+                }
             }
         }
 
@@ -243,6 +248,7 @@ namespace Telhai.DotNet.PlayerProject
 
         private void PlayTrack(MusicTrack track)
         {
+
             if (!File.Exists(track.FilePath))
                 return;
 
@@ -254,6 +260,12 @@ namespace Telhai.DotNet.PlayerProject
             txtCurrentSong.Text = track.Title;
             txtStatus.Text = "Playing";
             FilePathText.Text = track.FilePath;
+
+            if (_metadataCache.TryGetValue(track.FilePath, out var savedMeta) && savedMeta != null)
+            {
+                ShowMetadata(savedMeta);
+                return;
+            }
 
             // 2) ביטול קריאה קודמת
             _cts?.Cancel();
@@ -307,16 +319,38 @@ namespace Telhai.DotNet.PlayerProject
                     return;
                 }
 
+                // 1️⃣ Download artwork as bytes
+                byte[]? imageBytes = null;
+
+                if (!string.IsNullOrWhiteSpace(info.ArtworkUrl))
+                {
+                    using var client = new HttpClient();
+                    imageBytes = await client.GetByteArrayAsync(info.ArtworkUrl);
+                }
+
+                // 2️⃣ Create metadata object
+                var meta = new SongMetadata
+                {
+                    FilePath = track.FilePath,
+                    TrackName = info.TrackName,
+                    ArtistName = info.ArtistName,
+                    AlbumName = info.AlbumName,
+                    CoverImageBase64 = imageBytes != null
+                        ? Convert.ToBase64String(imageBytes)
+                        : null
+                };
+
+                // 3️⃣ Save to cache + JSON
+                _metadataCache[track.FilePath] = meta;
+                _metadataRepo.Save(_metadataCache);
+
+                // 4️⃣ Update UI on main thread
                 Dispatcher.Invoke(() =>
                 {
-                    TrackNameText.Text = info.TrackName;
-                    ArtistNameText.Text = info.ArtistName;
-                    AlbumNameText.Text = info.AlbumName;
+                    ShowMetadata(meta);
                     txtStatus.Text = "Info loaded.";
-
-                    if (!string.IsNullOrWhiteSpace(info.ArtworkUrl))
-                        AlbumImage.Source = new BitmapImage(new Uri(info.ArtworkUrl));
                 });
+
             }
             catch (OperationCanceledException)
             {
@@ -333,6 +367,30 @@ namespace Telhai.DotNet.PlayerProject
                 });
             }
         }
+
+        private void ShowMetadata(SongMetadata meta)
+        {
+            TrackNameText.Text = meta.TrackName ?? "-";
+            ArtistNameText.Text = meta.ArtistName ?? "-";
+            AlbumNameText.Text = meta.AlbumName ?? "-";
+            txtStatus.Text = "Playing";
+
+            if (!string.IsNullOrEmpty(meta.CoverImageBase64))
+            {
+                byte[] bytes = Convert.FromBase64String(meta.CoverImageBase64);
+                using var ms = new MemoryStream(bytes);
+
+                BitmapImage bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.StreamSource = ms;
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.EndInit();
+
+                AlbumImage.Source = bmp;
+            }
+        }
+
+
 
     }
 }
