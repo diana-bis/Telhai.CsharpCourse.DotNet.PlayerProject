@@ -548,6 +548,5 @@ namespace Telhai.DotNet.DianaBistrik.PlayerProject
             _slideshowTimer.Stop();
             _slideshowPaths = new();
         }
-
     }
 }
