@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 using Telhai.DotNet.PlayerProject.Models;
 
 namespace Telhai.DotNet.PlayerProject.Services
@@ -24,6 +26,24 @@ namespace Telhai.DotNet.PlayerProject.Services
             var options = new JsonSerializerOptions { WriteIndented = true };
             string json = JsonSerializer.Serialize(data, options);
             File.WriteAllText(FILE_NAME, json);
+        }
+
+        public string GetSongImagesFolder(string songFilePath)
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string imagesRoot = Path.Combine(baseDir, "song_images");
+
+            Directory.CreateDirectory(imagesRoot);
+
+            // hash to safe folder name
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(songFilePath));
+            string folder = Convert.ToHexString(hash);
+
+            string songFolder = Path.Combine(imagesRoot, folder);
+            Directory.CreateDirectory(songFolder);
+
+            return songFolder;
         }
     }
 }

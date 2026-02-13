@@ -13,6 +13,9 @@ namespace Telhai.DotNet.PlayerProject.Models
         public string? ArtistName { get; set; }
         public string? AlbumName { get; set; }
         public string? CoverImageBase64 { get; set; }
+
+        public string? EditedTitle { get; set; }
+        public List<string> ImagePaths { get; set; } = new();
     }
 }
 

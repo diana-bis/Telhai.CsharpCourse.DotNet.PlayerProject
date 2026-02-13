@@ -15,6 +15,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Telhai.DotNet.PlayerProject.Models;
 using Telhai.DotNet.PlayerProject.Services;
+using Telhai.DotNet.PlayerProject.ViewModels;
+using Telhai.DotNet.PlayerProject.Views;
+
 
 namespace Telhai.DotNet.PlayerProject
 {
@@ -23,6 +26,7 @@ namespace Telhai.DotNet.PlayerProject
     /// </summary>
     public partial class MusicPlayer : Window
     {
+        private string? _currentlyPlayingFilePath;
         private readonly SongMetadataRepository _metadataRepo = new SongMetadataRepository();
         private Dictionary<string, SongMetadata> _metadataCache = new();
 
@@ -38,10 +42,20 @@ namespace Telhai.DotNet.PlayerProject
         private const string FILE_NAME = "library.json";
 
         public string MyProperty { get; set; } = "xxx";
+
+        // for pic slideshow
+        private readonly DispatcherTimer _slideshowTimer = new DispatcherTimer();
+        private List<string> _slideshowPaths = new();
+        private int _slideshowIndex = 0;
+
         public MusicPlayer()
         {
             // Init all Hardcoded xaml into Element Tree
             InitializeComponent();
+
+            _slideshowTimer.Interval = TimeSpan.FromSeconds(3);
+            _slideshowTimer.Tick += (_, __) => AdvanceSlideshow();
+
 
             // 1. Setup Timer
             timer.Interval = TimeSpan.FromMilliseconds(500);
@@ -59,6 +73,21 @@ namespace Telhai.DotNet.PlayerProject
         {
             _metadataCache = _metadataRepo.Load();
             this.LoadLibrary();
+            ApplyEditedTitlesToLibrary();
+            UpdateLibraryUI();
+
+
+        }
+        private void ApplyEditedTitlesToLibrary()
+        {
+            foreach (var track in library)
+            {
+                if (_metadataCache.TryGetValue(track.FilePath, out var meta) && meta != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(meta.EditedTitle))
+                        track.Title = meta.EditedTitle!;
+                }
+            }
         }
 
         private void Timer_Tick(object? sender, EventArgs e)
@@ -186,17 +215,95 @@ namespace Telhai.DotNet.PlayerProject
         {
             if (lstLibrary.SelectedItem is MusicTrack track)
             {
+                if (_currentlyPlayingFilePath == track.FilePath)
+                {
+                    mediaPlayer.Stop();
+                    _currentlyPlayingFilePath = null;
+
+                    ResetPlayerUI();
+                    lstLibrary.SelectedItem = null;
+                }
+
                 library.Remove(track);
                 UpdateLibraryUI();
                 SaveLibrary();
 
-                // remove from metadata cache
                 if (_metadataCache.Remove(track.FilePath))
-                {
                     _metadataRepo.Save(_metadataCache);
-                }
             }
         }
+
+        private void ResetPlayerUI()
+        {
+            // stop playback UI
+            timer.Stop();
+            sliderProgress.Value = 0;
+
+            // clear texts
+            txtCurrentSong.Text = "";
+            txtStatus.Text = "Stopped";
+
+            TrackNameText.Text = "";
+            ArtistNameText.Text = "";
+            AlbumNameText.Text = "";
+
+            FilePathText.Text = "";
+
+            // default cover (or empty)
+            AlbumImage.Source = null;
+
+            // stop slideshow
+            StopSlideshow();
+        }
+
+        private void lstLibrary_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lstLibrary.SelectedItem is not MusicTrack track)
+            {
+                // no selection -> initial empty look
+                ResetPlayerUI();
+                return;
+            }
+
+            txtCurrentSong.Text = track.Title;
+            FilePathText.Text = track.FilePath;
+
+            if (_metadataCache.TryGetValue(track.FilePath, out var meta) && meta != null)
+                ShowMetadata(meta);
+        }
+
+        private void BtnEdit_Click(object sender, RoutedEventArgs e)
+        {
+            if (lstLibrary.SelectedItem is not MusicTrack track)
+                return;
+
+            try
+            {
+                var win = new EditSongWindow
+                {
+                    Owner = this,
+                    DataContext = new EditSongViewModel(track, _metadataRepo, _metadataCache)
+                };
+
+                win.ShowDialog();
+
+                // Refresh UI + list title from JSON (EditedTitle)
+                if (_metadataCache.TryGetValue(track.FilePath, out var meta) && meta != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(meta.EditedTitle))
+                        track.Title = meta.EditedTitle!;   // updates list item text
+
+                    UpdateLibraryUI();   // refresh list
+                    ShowMetadata(meta);  // refresh "Now Playing"
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), "Edit window error");
+            }
+        }
+
+
 
         private void LstLibrary_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
@@ -237,20 +344,13 @@ namespace Telhai.DotNet.PlayerProject
             SaveLibrary();
         }
 
-        private void lstLibrary_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (lstLibrary.SelectedItem is MusicTrack track)
-            {
-                txtCurrentSong.Text = track.Title;
-                FilePathText.Text = track.FilePath;
-            }
-        }
-
         private void PlayTrack(MusicTrack track)
         {
 
             if (!File.Exists(track.FilePath))
                 return;
+
+            _currentlyPlayingFilePath = track.FilePath;
 
             // 1) מנגן מיד
             mediaPlayer.Open(new Uri(track.FilePath));
@@ -370,10 +470,25 @@ namespace Telhai.DotNet.PlayerProject
 
         private void ShowMetadata(SongMetadata meta)
         {
-            TrackNameText.Text = meta.TrackName ?? "-";
+            // prefer edited title everywhere
+            string titleToShow = meta.EditedTitle ?? meta.TrackName ?? "-";
+
+            TrackNameText.Text = titleToShow;
+            txtCurrentSong.Text = titleToShow;
+
             ArtistNameText.Text = meta.ArtistName ?? "-";
             AlbumNameText.Text = meta.AlbumName ?? "-";
             txtStatus.Text = "Playing";
+
+            // If user added images -> slideshow
+            if (meta.ImagePaths != null && meta.ImagePaths.Count > 0)
+            {
+                StartSlideshow(meta.ImagePaths);
+                return;
+            }
+
+            // otherwise stop slideshow and show API cover
+            StopSlideshow();
 
             if (!string.IsNullOrEmpty(meta.CoverImageBase64))
             {
@@ -390,7 +505,50 @@ namespace Telhai.DotNet.PlayerProject
             }
         }
 
+        private void StartSlideshow(List<string> paths)
+        {
+            _slideshowPaths = paths.Where(File.Exists).ToList();
+            _slideshowIndex = 0;
 
+            if (_slideshowPaths.Count == 0)
+            {
+                _slideshowTimer.Stop();
+                return;
+            }
+
+            SetAlbumImageFromPath(_slideshowPaths[_slideshowIndex]);
+            _slideshowTimer.Start();
+        }
+
+        private void AdvanceSlideshow()
+        {
+            if (_slideshowPaths.Count == 0)
+                return;
+
+            _slideshowIndex = (_slideshowIndex + 1) % _slideshowPaths.Count;
+            SetAlbumImageFromPath(_slideshowPaths[_slideshowIndex]);
+        }
+
+        private void SetAlbumImageFromPath(string path)
+        {
+            try
+            {
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(path, UriKind.Absolute);
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.EndInit();
+
+                AlbumImage.Source = bmp;
+            }
+            catch { }
+        }
+
+        private void StopSlideshow()
+        {
+            _slideshowTimer.Stop();
+            _slideshowPaths = new();
+        }
 
     }
 }
