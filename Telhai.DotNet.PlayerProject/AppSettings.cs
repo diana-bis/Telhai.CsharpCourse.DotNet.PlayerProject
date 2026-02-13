@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Text.Json;
 
-namespace Telhai.DotNet.PlayerProject
+namespace Telhai.DotNet.DianaBistrik.PlayerProject
 {
     public class AppSettings
     {

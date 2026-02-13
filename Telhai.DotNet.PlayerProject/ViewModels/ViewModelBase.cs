@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Telhai.DotNet.PlayerProject.ViewModels
+namespace Telhai.DotNet.DianaBistrik.PlayerProject.ViewModels
 {
     public class ViewModelBase : INotifyPropertyChanged
     {

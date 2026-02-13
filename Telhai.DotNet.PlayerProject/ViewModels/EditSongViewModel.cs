@@ -4,10 +4,10 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Windows.Media.Imaging;
-using Telhai.DotNet.PlayerProject.Models;
-using Telhai.DotNet.PlayerProject.Services;
+using Telhai.DotNet.DianaBistrik.PlayerProject.Models;
+using Telhai.DotNet.DianaBistrik.PlayerProject.Services;
 
-namespace Telhai.DotNet.PlayerProject.ViewModels
+namespace Telhai.DotNet.DianaBistrik.PlayerProject.ViewModels
 {
     public class EditSongViewModel : ViewModelBase
     {

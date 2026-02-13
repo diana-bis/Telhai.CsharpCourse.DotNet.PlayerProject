@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace Telhai.DotNet.PlayerProject.ViewModels
+namespace Telhai.DotNet.DianaBistrik.PlayerProject.ViewModels
 {
     public class RelayCommand : ICommand
     {

@@ -3,9 +3,9 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Security.Cryptography;
-using Telhai.DotNet.PlayerProject.Models;
+using Telhai.DotNet.DianaBistrik.PlayerProject.Models;
 
-namespace Telhai.DotNet.PlayerProject.Services
+namespace Telhai.DotNet.DianaBistrik.PlayerProject.Services
 {
     public class SongMetadataRepository
     {

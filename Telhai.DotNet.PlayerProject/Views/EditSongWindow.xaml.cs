@@ -12,7 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace Telhai.DotNet.PlayerProject.Views
+namespace Telhai.DotNet.DianaBistrik.PlayerProject.Views
 {
     /// <summary>
     /// Interaction logic for EditSongWindow.xaml
@@ -28,7 +28,7 @@ namespace Telhai.DotNet.PlayerProject.Views
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            if (DataContext is Telhai.DotNet.PlayerProject.ViewModels.EditSongViewModel vm)
+            if (DataContext is Telhai.DotNet.DianaBistrik.PlayerProject.ViewModels.EditSongViewModel vm)
             {
                 vm.SaveCommand.Execute(null);
             }

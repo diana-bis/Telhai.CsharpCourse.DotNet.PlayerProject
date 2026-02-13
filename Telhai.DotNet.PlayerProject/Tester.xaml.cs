@@ -11,11 +11,11 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using Telhai.DotNet.PlayerProject.Models;
-using Telhai.DotNet.PlayerProject.Services;
+using Telhai.DotNet.DianaBistrik.PlayerProject.Models;
+using Telhai.DotNet.DianaBistrik.PlayerProject.Services;
 using System.IO;
 
-namespace Telhai.DotNet.PlayerProject
+namespace Telhai.DotNet.DianaBistrik.PlayerProject
 {
     /// <summary>
     /// Interaction logic for Tester.xaml

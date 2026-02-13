@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace Telhai.DotNet.PlayerProject
+namespace Telhai.DotNet.DianaBistrik.PlayerProject
 {
     /// <summary>
     /// Interaction logic for App.xaml

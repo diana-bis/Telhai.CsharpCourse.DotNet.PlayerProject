@@ -13,12 +13,12 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Telhai.DotNet.PlayerProject.Models;
-using Telhai.DotNet.PlayerProject.Services;
-using Telhai.DotNet.PlayerProject.ViewModels;
-using Telhai.DotNet.PlayerProject.Views;
+using Telhai.DotNet.DianaBistrik.PlayerProject.Models;
+using Telhai.DotNet.DianaBistrik.PlayerProject.Services;
+using Telhai.DotNet.DianaBistrik.PlayerProject.ViewModels;
+using Telhai.DotNet.DianaBistrik.PlayerProject.Views;
 
-namespace Telhai.DotNet.PlayerProject
+namespace Telhai.DotNet.DianaBistrik.PlayerProject
 {
     /// <summary>
     /// Interaction logic for MusicPlayer.xaml

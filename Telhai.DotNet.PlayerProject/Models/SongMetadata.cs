@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Telhai.DotNet.PlayerProject.Models
+namespace Telhai.DotNet.DianaBistrik.PlayerProject.Models
 {
     public class SongMetadata
     {
