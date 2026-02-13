@@ -18,7 +18,6 @@ using Telhai.DotNet.PlayerProject.Services;
 using Telhai.DotNet.PlayerProject.ViewModels;
 using Telhai.DotNet.PlayerProject.Views;
 
-
 namespace Telhai.DotNet.PlayerProject
 {
     /// <summary>
